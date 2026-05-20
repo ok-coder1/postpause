@@ -5,6 +5,20 @@
     "dir": "dist/server",
     "entry": "index.cjs"
   },
+  "menu": {
+    "items": [
+      {
+        "label": "Temporarily mute user",
+        "description": "Temporarily stop/mute the user from posting for a set amount of time.",
+        "forUserType": "moderator",
+        "location": ["comment", "post"],
+        "endpoint": "/internal/menu/mute-user"
+      }
+    ]
+  },
+  "forms": {
+    "muteUser": "/internal/forms/mute-user-submit"
+  },
   "triggers": {
     "onAppInstall": "/internal/triggers/on-app-install",
     "onPostSubmit": "/internal/triggers/on-post-submit"
