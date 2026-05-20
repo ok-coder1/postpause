@@ -1,7 +1,13 @@
 import { Hono } from 'hono';
+import { reddit } from '@devvit/reddit';
 import { redis } from '@devvit/redis';
-import type { UiResponse } from '@devvit/web/shared';
 import { context } from '@devvit/web/server';
+import type { UiResponse } from '@devvit/web/shared';
+
+type ResetCooldownUnmuteFormValues = {
+    username: string;
+    userId: string;
+}
 
 type MuteFormValues = {
     username: string;
@@ -11,17 +17,78 @@ type MuteFormValues = {
 
 export const forms = new Hono();
 
-const normalizeValues = (values: MuteFormValues) => ({
+const normalizeResetCooldownUnmuteValues = (values: ResetCooldownUnmuteFormValues) => ({
     username: String(values.username),
     userId: String(values.userId),
-    muteHours: Number(values.muteHours),
-})
+});
+
+forms.post('/reset-cooldown-unmute-submit', async (c) => {
+    const values = await c.req.json<ResetCooldownUnmuteFormValues>();
+    const normalized = normalizeResetCooldownUnmuteValues(values);
+    const subredditName = context.subredditName;
+    const userId = normalized.userId;
+    const username = normalized.username;
+
+    await redis.del(`lastpost:${subredditName}:${userId}`);
+    const isMuted = await redis.get(`muted:${subredditName}:${userId}`);
+    if (isMuted == 'true') {
+        await redis.del(`muted:${subredditName}:${userId}`);
+        return c.json<UiResponse>(
+            {
+                showToast: `u/${username} has been unmuted. They can now post immediately.`,
+            },
+            200
+        );
+    } else {
+        return c.json<UiResponse>(
+            {
+                showToast: `The cooldown for u/${username} has been reset. They can now post immediately.`,
+            },
+            200
+        );
+    }
+});
+
+const normalizeMuteValues = (values: MuteFormValues) => ({
+    username: String(values.username),
+    userId: String(values.userId),
+    muteHours: values.muteHours,
+});
 
 forms.post('/mute-user-submit', async (c) => {
     const values = await c.req.json<MuteFormValues>();
-    const normalized = normalizeValues(values);
-    
-    if (!normalized.muteHours) {
+    const normalized = normalizeMuteValues(values);
+    const subredditName = context.subredditName;
+    const userId = normalized.userId;
+    const username = normalized.username;
+    const muteHours = normalized.muteHours
+    let isMod;
+
+    if (context.username == username) {
+        return c.json<UiResponse>(
+            {
+                showToast: 'You cannot mute yourself.',
+            },
+            200
+        );
+    }
+
+    try {
+        isMod = (await reddit.getModerators({ subredditName, username }).all()).length > 0;
+    } catch (error) {
+        console.error('Error checking if user is a moderator: ', error);
+    }
+
+    if (isMod) {
+        return c.json<UiResponse>(
+            {
+                showToast: 'You cannot mute a moderator.',
+            },
+            200
+        );
+    }
+
+    if (!normalized.muteHours || normalized.muteHours <= 0) {
         return c.json<UiResponse>(
             {
                 showToast: 'You must specify the duration to mute the user for.',
@@ -31,12 +98,12 @@ forms.post('/mute-user-submit', async (c) => {
     }
 
     const muteUntil = Date.now() + (normalized.muteHours * 60 * 60 * 1000);
-    await redis.set(`muted:${context.subredditName}:${normalized.userId}`, 'true');
-    await redis.set(`lastpost:${context.subredditName}:${normalized.userId}`, muteUntil.toString());
+    await redis.set(`muted:${subredditName}:${userId}`, 'true');
+    await redis.set(`lastpost:${subredditName}:${userId}`, muteUntil.toString());
 
     return c.json<UiResponse>(
         {
-            showToast: `u/${normalized.username} has been muted for ${normalized.muteHours} hours.`
+            showToast: `u/${username} has been muted for ${muteHours} hours.`
         },
         200
     );

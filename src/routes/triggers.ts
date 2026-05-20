@@ -30,7 +30,8 @@ triggers.post('/on-post-submit', async (c) => {
   const username = input.author?.name;
   const subredditName = input.subreddit?.name;
   const postId = input.post?.id.replace('t3_', '');
-  const cooldownMinutes = ((await settings.get('cooldownMinutes')) as number) ?? 60;
+  const cooldown = ((await settings.get('cooldownMinutes')) as number) ?? 60;
+  const isMuted = await redis.get(`muted:${subredditName}:${userId}`);
   let isMod = false;
 
   if (!userId || !username || !subredditName || !postId) {
@@ -43,8 +44,7 @@ triggers.post('/on-post-submit', async (c) => {
   }
 
   try {
-    isMod =
-      (await reddit.getModerators({ subredditName, username }).all()).length > 0;
+    isMod = (await reddit.getModerators({ subredditName, username }).all()).length > 0;
   } catch (error) {
     console.error('Error checking if user is a moderator: ', error);
   }
@@ -62,32 +62,31 @@ triggers.post('/on-post-submit', async (c) => {
   const lastPostTime = await redis.get(`lastpost:${subredditName}:${userId}`);
 
   if (lastPostTime) {
-    const minutesSince = (Date.now() - parseInt(lastPostTime)) / (1000 * 60);
+    const minutesSinceLastPost = (Date.now() - parseInt(lastPostTime)) / (1000 * 60);
+    let minutesLeft;
 
-    if (minutesSince < cooldownMinutes) {
-      const minutesLeft = (cooldownMinutes - minutesSince).toFixed(1);
+    if (minutesSinceLastPost < cooldown) {
+      if (isMuted == 'true') {
+        minutesLeft = ((parseInt(lastPostTime) - Date.now()) / (1000 * 60)).toFixed(1);
+      } else {
+        minutesLeft = (cooldown - minutesSinceLastPost).toFixed(1);
+      }
       let hoursLeft = '0';
-      let moreThanOneHour = false;
+      let ifMoreThanAnHr = false;
       let daysLeft = '0';
-      let moreThanOneDay = false;
-      if (parseInt(minutesLeft) >= 60) {
-        hoursLeft = ((cooldownMinutes - minutesSince) / 60).toFixed(1);
-        moreThanOneHour = true;
+      let ifMoreThanADay = false;
+      if (parseFloat(minutesLeft) >= 60) {
+        hoursLeft = ((cooldown - minutesSinceLastPost) / 60).toFixed(1);
+        ifMoreThanAnHr = true;
       }
-      if (parseInt(hoursLeft) >= 24) {
-        daysLeft = ((cooldownMinutes - minutesSince) / (60 * 24)).toFixed(1);
-        moreThanOneDay = true;
-      }
-      try {
-        await reddit.remove(`t3_${postId}`, false);
-      } catch (error) {
-        console.error('Error removing post ', postId, ': ', error);
+      if (parseFloat(hoursLeft) >= 24) {
+        daysLeft = ((cooldown - minutesSinceLastPost) / (60 * 24)).toFixed(1);
+        ifMoreThanADay = true;
       }
       try {
-        const isMuted = await redis.get(`muted:${subredditName}:${userId}`);
         if (isMuted != 'true') {
-          if (moreThanOneHour) {
-            if (moreThanOneDay) {
+          if (ifMoreThanAnHr) {
+            if (ifMoreThanADay) {
               try {
                 await reddit.submitComment({
                   id: `t3_${postId}`,
@@ -131,9 +130,9 @@ triggers.post('/on-post-submit', async (c) => {
               text: `Your post in **r/${subredditName}** was removed. Please wait for **${minutesLeft} minutes** until you can post again.`,
             });
           }
-        } else if (isMuted == 'true') {
-          if (moreThanOneHour) {
-            if (moreThanOneDay) {
+        } else {
+          if (ifMoreThanAnHr) {
+            if (ifMoreThanADay) {
               await reddit.sendPrivateMessage({
                   to: username,
                   subject: 'PostPause',
@@ -156,6 +155,11 @@ triggers.post('/on-post-submit', async (c) => {
         }
       } catch (error) {
         console.error('Error sending private message to u/', username, ': ', error);
+      }
+      try {
+        await reddit.remove(`t3_${postId}`, false);
+      } catch (error) {
+        console.error('Error removing post ', postId, ': ', error);
       }
 
       return c.json<TriggerResponse>(

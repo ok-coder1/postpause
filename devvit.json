@@ -13,11 +13,19 @@
         "forUserType": "moderator",
         "location": ["comment", "post"],
         "endpoint": "/internal/menus/mute-user"
+      },
+      {
+        "label": "Reset cooldown/unmute user",
+        "description": "Reset the cooldown for a user or unmute them if they are currently muted.",
+        "forUserType": "moderator",
+        "location": ["comment", "post"],
+        "endpoint": "/internal/menus/reset-cooldown-unmute"
       }
     ]
   },
   "forms": {
-    "muteUser": "/internal/forms/mute-user-submit"
+    "muteUser": "/internal/forms/mute-user-submit",
+    "resetCooldownUnmute": "/internal/forms/reset-cooldown-unmute-submit"
   },
   "triggers": {
     "onAppInstall": "/internal/triggers/on-app-install",

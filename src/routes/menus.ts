@@ -5,33 +5,86 @@ import type { FormField } from '@devvit/shared-types/shared/form.js';
 
 export const menus = new Hono();
 
+const buildResetCooldownUnmuteFields = (username: string, userId: string): FormField[] => [
+    {
+        name: 'username',
+        label: 'Username of the user to reset cooldown for',
+        type: 'string',
+        disabled: true,
+        defaultValue: username,
+    },
+    {
+        name: 'userId',
+        label: 'User ID of the user to reset cooldown for',
+        type: 'string',
+        disabled: true,
+        defaultValue: userId,
+        helpText: 'Reset the cooldown for the user, allowing them to post immediately. Use this to also unmute the user if they are currently muted.',
+    },
+]
+
+const buildResetCooldownUnmuteForm = (title: string, username: string, userId: string) => ({
+    fields: buildResetCooldownUnmuteFields(username, userId),
+    title,
+    acceptLabel: 'Reset',
+    cancelLabel: 'Cancel',
+})
+
+menus.post('/reset-cooldown-unmute', async (c) => {
+    const request = await c.req.json<MenuItemRequest>();
+    let username;
+    let userId;
+    if (request.location == "post") {
+        const targetId = request.targetId.replace('t3_', '');
+        const post = await reddit.getPostById(`t3_${targetId}`);
+        username = post.authorName;
+        userId = post.authorId;
+    } else if (request.location == "comment") {
+        const targetId = request.targetId.replace('t1_', '');
+        const comment = await reddit.getCommentById(`t1_${targetId}`);
+        username = comment.authorName;
+        userId = comment.authorId;
+    } else {
+        return c.json<UiResponse>(
+            {
+                showToast: 'This menu item can only be used on posts or comments.',
+            },
+            200
+        );
+    }
+    return c.json<UiResponse>(
+        {
+            showForm: {
+                name: 'resetCooldownUnmute',
+                form: buildResetCooldownUnmuteForm('Reset cooldown/unmute user', username,  `${userId}`),
+            },
+        },
+        200
+    );
+});
+
 const buildMuteFields = (username: string, userId: string): FormField[] => [
-  {
-    name: 'muteLabel',
-    label: 'Temporarily stops/mutes the user from posting for a set amount of time',
-    type: 'paragraph',
-    disabled: true,
-    defaultValue: 'Temporarily stops/mutes the user from posting for a set amount of time and PM the user.',
-  },
-  {
-    name: 'username',
-    label: 'Username of the user to mute',
-    type: 'string',
-    disabled: true,
-    defaultValue: username,
-  },
-  {
-    name: 'userId',
-    label: 'User ID of the user to mute',
-    type: 'string',
-    disabled: true,
-    defaultValue: userId,
-  },
-  {
-    name: 'muteHours',
-    label: 'Number of hours to mute the user for',
-    type: 'number',
-  },
+    {
+        name: 'username',
+        label: 'Username of the user to mute',
+        type: 'string',
+        disabled: true,
+        defaultValue: username,
+    },
+    {
+        name: 'userId',
+        label: 'User ID of the user to mute',
+        type: 'string',
+        disabled: true,
+        defaultValue: userId,
+    },
+    {
+        name: 'muteHours',
+        label: 'Number of hours to mute the user for',
+        type: 'number',
+        helpText: 'Temporarily stop/mute the user from posting for a set amount of time.',
+        required: true,
+    },
 ];
 
 const buildMuteForm = (title: string, username: string, userId: string) => ({
