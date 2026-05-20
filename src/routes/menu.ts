@@ -3,7 +3,7 @@ import { reddit } from '@devvit/reddit';
 import type { MenuItemRequest, UiResponse } from '@devvit/web/shared';
 import type { FormField } from '@devvit/shared-types/shared/form.js';
 
-export const menu = new Hono();
+export const menus = new Hono();
 
 const buildMuteFields = (username: string, userId: string): FormField[] => [
   {
@@ -41,7 +41,7 @@ const buildMuteForm = (title: string, username: string, userId: string) => ({
     cancelLabel: 'Cancel',
 })
 
-menu.post('/mute-user', async (c) => {
+menus.post('/mute-user', async (c) => {
     const request = await c.req.json<MenuItemRequest>();
     let username;
     let userId;

@@ -12,7 +12,7 @@
         "description": "Temporarily stop/mute the user from posting for a set amount of time.",
         "forUserType": "moderator",
         "location": ["comment", "post"],
-        "endpoint": "/internal/menu/mute-user"
+        "endpoint": "/internal/menus/mute-user"
       }
     ]
   },
