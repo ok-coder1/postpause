@@ -30,9 +30,11 @@ triggers.post('/on-post-submit', async (c) => {
   const username = input.author?.name;
   const subredditName = input.subreddit?.name;
   const postId = input.post?.id.replace('t3_', '');
-  const cooldown = ((await settings.get('cooldownMinutes')) as number) ?? 60;
-  const isMuted = await redis.get(`muted:${subredditName}:${userId}`);
+  const cooldown = await settings.get('cooldownMinutes') as number ?? 60;
+  const removalMessage = await settings.get('removalMessage') as string ?? `Your post in r/subredditName was removed. Please wait **timeLeft** before posting again.`;
+  const exemptApprovedUsers = await settings.get('exemptApprovedUsers') as boolean ?? false;
   let isMod = false;
+  let isApproved = false;
 
   if (!userId || !username || !subredditName || !postId) {
     return c.json<TriggerResponse>(
@@ -49,8 +51,13 @@ triggers.post('/on-post-submit', async (c) => {
     console.error('Error checking if user is a moderator: ', error);
   }
 
-  if (isMod)
-  {
+  try {
+    isApproved = (await reddit.getApprovedUsers({subredditName, username}).all()).length > 0;
+  } catch (error) {
+    console.error('Error checking if user is approved: ', error);
+  }
+
+  if (isMod) {
     return c.json<TriggerResponse>(
       {
         status: 'success',
@@ -59,29 +66,49 @@ triggers.post('/on-post-submit', async (c) => {
     );
   }
 
-  const lastPostTime = await redis.get(`lastpost:${subredditName}:${userId}`);
+  if (exemptApprovedUsers) {
+    if (isApproved) {
+      return c.json<TriggerResponse>(
+        {
+          status: 'success',
+        },
+        200
+      );
+    }
+  }
+
+  const lastPostTime = await redis.get(`lastpost:${userId}`);
+  const isMuted = await redis.get(`muted:${userId}`);
 
   if (lastPostTime) {
     const minutesSinceLastPost = (Date.now() - parseInt(lastPostTime)) / (1000 * 60);
-    let minutesLeft;
+    let minutesLeft = '0';
+    let hoursLeft = '0';
+    let ifMoreThanAnHr = false;
+    let daysLeft = '0';
+    let ifMoreThanADay = false;
 
     if (minutesSinceLastPost < cooldown) {
       if (isMuted == 'true') {
         minutesLeft = ((parseInt(lastPostTime) - Date.now()) / (1000 * 60)).toFixed(1);
+        if (parseFloat(minutesLeft) >= 60) {
+          hoursLeft = ((parseInt(lastPostTime) - Date.now()) / (1000 * 60 * 60)).toFixed(1);
+          ifMoreThanAnHr = true;
+        }
+        if (parseFloat(hoursLeft) >= 24) {
+          daysLeft = ((parseInt(lastPostTime) - Date.now()) / (1000 * 60 * 60 * 24)).toFixed(1);
+          ifMoreThanADay = true;
+        }
       } else {
-        minutesLeft = (cooldown - minutesSinceLastPost).toFixed(1);
-      }
-      let hoursLeft = '0';
-      let ifMoreThanAnHr = false;
-      let daysLeft = '0';
-      let ifMoreThanADay = false;
-      if (parseFloat(minutesLeft) >= 60) {
-        hoursLeft = ((cooldown - minutesSinceLastPost) / 60).toFixed(1);
-        ifMoreThanAnHr = true;
-      }
-      if (parseFloat(hoursLeft) >= 24) {
-        daysLeft = ((cooldown - minutesSinceLastPost) / (60 * 24)).toFixed(1);
-        ifMoreThanADay = true;
+        minutesLeft = (cooldown - minutesSinceLastPost).toFixed(1);  
+        if (parseFloat(minutesLeft) >= 60) {
+          hoursLeft = ((cooldown - minutesSinceLastPost) / 60).toFixed(1);
+          ifMoreThanAnHr = true;
+        }
+        if (parseFloat(hoursLeft) >= 24) {
+          daysLeft = ((cooldown - minutesSinceLastPost) / (60 * 24)).toFixed(1);
+          ifMoreThanADay = true;
+        }
       }
       try {
         if (isMuted != 'true') {
@@ -98,7 +125,7 @@ triggers.post('/on-post-submit', async (c) => {
               await reddit.sendPrivateMessage({
                 to: username,
                 subject: 'PostPause',
-                text: `Your post in **r/${subredditName}** was removed. Please wait for **${daysLeft} days** until you can post again.`,
+                text: (parseFloat(daysLeft) != 1.0) ? removalMessage.replace('subredditName', subredditName).replace('timeLeft', `${daysLeft} days`) : removalMessage.replace('subredditName', subredditName).replace('timeLeft', `1 day`),
               });
             } else {
               try {
@@ -112,7 +139,7 @@ triggers.post('/on-post-submit', async (c) => {
               await reddit.sendPrivateMessage({
                 to: username,
                 subject: 'PostPause',
-                text: `Your post in **r/${subredditName}** was removed. Please wait for **${hoursLeft} hours** until you can post again.`,
+                text: (parseFloat(hoursLeft) != 1.0) ? removalMessage.replace('subredditName', subredditName).replace('timeLeft', `${hoursLeft} hours`) : removalMessage.replace('subredditName', subredditName).replace('timeLeft', `1 hour`),
               });
             }
           } else {
@@ -127,29 +154,29 @@ triggers.post('/on-post-submit', async (c) => {
             await reddit.sendPrivateMessage({
               to: username,
               subject: 'PostPause',
-              text: `Your post in **r/${subredditName}** was removed. Please wait for **${minutesLeft} minutes** until you can post again.`,
-            });
-          }
+              text: (parseFloat(minutesLeft) != 1.0) ? removalMessage.replace('subredditName', subredditName).replace('timeLeft', `${minutesLeft} minutes`) : removalMessage.replace('subredditName', subredditName).replace('timeLeft', `1 minute`),
+          });
+        }
         } else {
           if (ifMoreThanAnHr) {
             if (ifMoreThanADay) {
               await reddit.sendPrivateMessage({
                   to: username,
                   subject: 'PostPause',
-                  text: `Your post in **r/${subredditName}** was removed. You are currently muted and cannot post for **${daysLeft} days**.`,
+                  text: (parseFloat(daysLeft) != 1.0) ? removalMessage.replace('subredditName', subredditName).replace('timeLeft', `${daysLeft} days`) : removalMessage.replace('subredditName', subredditName).replace('timeLeft', `1 day`),
                 });
             } else {
               await reddit.sendPrivateMessage({
                 to: username,
                 subject: 'PostPause',
-                text: `Your post in **r/${subredditName}** was removed. You are currently muted and cannot post for **${hoursLeft} hours**.`,
+                text: (parseFloat(hoursLeft) != 1.0) ? removalMessage.replace('subredditName', subredditName).replace('timeLeft', `${hoursLeft} hours`) : removalMessage.replace('subredditName', subredditName).replace('timeLeft', `1 hour`),
               });
             }
           } else {
             await reddit.sendPrivateMessage({
               to: username,
               subject: 'PostPause',
-              text: `Your post in **r/${subredditName}** was removed. You are currently muted and cannot post for **${minutesLeft} minutes**.`,
+              text: (parseFloat(minutesLeft) != 1.0) ? removalMessage.replace('subredditName', subredditName).replace('timeLeft', `${minutesLeft} minutes`) : removalMessage.replace('subredditName', subredditName).replace('timeLeft', `1 minute`),
             });
           }
         }
@@ -171,8 +198,8 @@ triggers.post('/on-post-submit', async (c) => {
     }
   }
 
-  await redis.set(`lastpost:${subredditName}:${userId}`, Date.now().toString());
-  await redis.del(`muted:${subredditName}:${userId}`);
+  await redis.set(`lastpost:${userId}`, Date.now().toString());
+  await redis.del(`muted:${userId}`);
 
   return c.json<TriggerResponse>(
     {
