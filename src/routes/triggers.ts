@@ -48,13 +48,13 @@ triggers.post('/on-post-submit', async (c) => {
   try {
     isMod = (await reddit.getModerators({ subredditName, username }).all()).length > 0;
   } catch (error) {
-    console.error('Error checking if user is a moderator: ', error);
+    console.error('Error checking if user is a moderator:', error);
   }
 
   try {
     isApproved = (await reddit.getApprovedUsers({subredditName, username}).all()).length > 0;
   } catch (error) {
-    console.error('Error checking if user is approved: ', error);
+    console.error('Error checking if user is approved:', error);
   }
 
   if (isMod) {
@@ -120,7 +120,7 @@ triggers.post('/on-post-submit', async (c) => {
                   text: `Your post was removed because you are on a cooldown. Please wait **${daysLeft} days** before posting again.\n*I am a bot, and this action was performed automatically. Please [contact the moderators of this subreddit](https://www.reddit.com/message/compose/?to=/r/${subredditName}) if you have any questions or concerns.*`,
                 })
               } catch (error) {
-                console.error('Error submitting comment to post ', postId, ': ', error);
+                console.error('Error submitting comment to post', postId, ':', error);
               }
               await reddit.sendPrivateMessage({
                 to: username,
@@ -134,7 +134,7 @@ triggers.post('/on-post-submit', async (c) => {
                   text: `Your post was removed because you are on a cooldown. Please wait **${hoursLeft} hours** before posting again.\n*I am a bot, and this action was performed automatically. Please [contact the moderators of this subreddit](https://www.reddit.com/message/compose/?to=/r/${subredditName}) if you have any questions or concerns.*`,
                 })
               } catch (error) {
-                console.error('Error submitting comment to post ', postId, ': ', error);
+                console.error('Error submitting comment to post', postId, ':', error);
               }
               await reddit.sendPrivateMessage({
                 to: username,
@@ -149,7 +149,7 @@ triggers.post('/on-post-submit', async (c) => {
                 text: `Your post was removed because you are on a cooldown. Please wait **${minutesLeft} minutes** before posting again.\n*I am a bot, and this action was performed automatically. Please [contact the moderators of this subreddit](https://www.reddit.com/message/compose/?to=/r/${subredditName}) if you have any questions or concerns.*`,
               });
             } catch (error) {
-              console.error('Error submitting comment to post ', postId, ': ', error);
+              console.error('Error submitting comment to post', postId, ':', error);
             }
             await reddit.sendPrivateMessage({
               to: username,
@@ -181,12 +181,12 @@ triggers.post('/on-post-submit', async (c) => {
           }
         }
       } catch (error) {
-        console.error('Error sending private message to u/', username, ': ', error);
+        console.error('Error sending private message to u/', username, ':', error);
       }
       try {
         await reddit.remove(`t3_${postId}`, false);
       } catch (error) {
-        console.error('Error removing post ', postId, ': ', error);
+        console.error('Error removing post', postId, ':', error);
       }
 
       return c.json<TriggerResponse>(
@@ -199,6 +199,7 @@ triggers.post('/on-post-submit', async (c) => {
   }
 
   await redis.set(`lastpost:${userId}`, Date.now().toString());
+  await redis.expire(`lastpost:${userId}`, cooldown * 60);
   await redis.del(`muted:${userId}`);
 
   return c.json<TriggerResponse>(
