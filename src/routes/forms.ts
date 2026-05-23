@@ -6,12 +6,10 @@ import type { UiResponse } from '@devvit/web/shared';
 
 type ResetCooldownUnmuteFormValues = {
     username: string;
-    userId: string;
 }
 
 type MuteFormValues = {
     username: string;
-    userId: string;
     muteHours: number;
 }
 
@@ -19,15 +17,24 @@ export const forms = new Hono();
 
 const normalizeResetCooldownUnmuteValues = (values: ResetCooldownUnmuteFormValues) => ({
     username: String(values.username),
-    userId: String(values.userId),
 });
 
 forms.post('/reset-cooldown-unmute-submit', async (c) => {
     const values = await c.req.json<ResetCooldownUnmuteFormValues>();
     const normalized = normalizeResetCooldownUnmuteValues(values);
     const subredditName = context.subredditName;
-    const userId = normalized.userId;
     const username = normalized.username;
+    const user = await reddit.getUserByUsername(username);
+    const userId = user?.id;
+
+    if (!username || !user || !userId) {
+        return c.json<UiResponse>(
+            {
+                showToast: 'Please specify a user.',
+            },
+            200
+        );
+    }
 
     await redis.del(`lastpost:${subredditName}:${userId}`);
     const isMuted = await redis.get(`muted:${subredditName}:${userId}`);
@@ -51,7 +58,6 @@ forms.post('/reset-cooldown-unmute-submit', async (c) => {
 
 const normalizeMuteValues = (values: MuteFormValues) => ({
     username: String(values.username),
-    userId: String(values.userId),
     muteHours: values.muteHours,
 });
 
@@ -59,15 +65,25 @@ forms.post('/mute-user-submit', async (c) => {
     const values = await c.req.json<MuteFormValues>();
     const normalized = normalizeMuteValues(values);
     const subredditName = context.subredditName;
-    const userId = normalized.userId;
     const username = normalized.username;
-    const muteHours = normalized.muteHours
+    const user = await reddit.getUserByUsername(username);
+    const userId = user?.id;
+    const muteHours = normalized.muteHours;
     let isMod;
 
     if (context.username == username) {
         return c.json<UiResponse>(
             {
                 showToast: 'You cannot mute yourself.',
+            },
+            200
+        );
+    }
+
+    if (!username || !user || !userId) {
+        return c.json<UiResponse>(
+            {
+                showToast: 'Please specify a user.',
             },
             200
         );

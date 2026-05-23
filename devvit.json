@@ -43,17 +43,24 @@
       "cooldownMinutes": {
         "type": "number",
         "label": "Cooldown duration (in minutes)",
+        "validationEndpoint": "/internal/settings/validate-cooldown",
         "defaultValue": 30
       },
       "removalMessage": {
         "type": "string",
         "label": "Removal message (use 'r/subredditName' and 'timeLeft' as placeholders)",
+        "validationEndpoint": "/internal/settings/validate-removal-message",
         "defaultValue": "Your post in r/subredditName was removed. Please wait **timeLeft** before posting again."
       },
       "exemptApprovedUsers": {
         "type": "boolean",
         "label": "Exempt approved users from cooldown",
         "defaultValue": false
+      },
+      "flairsCooldown": {
+        "type": "paragraph",
+        "label": "Specific cooldowns for each flair (must be in the format \"flair: cooldown\" with a newline separating each of these)",
+        "validationEndpoint": "/internal/settings/validate-flairs"
       }
     }
   },

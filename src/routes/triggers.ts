@@ -30,11 +30,8 @@ triggers.post('/on-post-submit', async (c) => {
   const username = input.author?.name;
   const subredditName = input.subreddit?.name;
   const postId = input.post?.id.replace('t3_', '');
-  const cooldown = await settings.get('cooldownMinutes') as number ?? 60;
-  const removalMessage = await settings.get('removalMessage') as string ?? `Your post in r/subredditName was removed. Please wait **timeLeft** before posting again.`;
-  const exemptApprovedUsers = await settings.get('exemptApprovedUsers') as boolean ?? false;
-  let isMod = false;
-  let isApproved = false;
+  const postFlair = input.post?.linkFlair?.text;
+  let cooldown = await settings.get<number>('cooldownMinutes') ?? 60;
 
   if (!userId || !username || !subredditName || !postId) {
     return c.json<TriggerResponse>(
@@ -44,6 +41,23 @@ triggers.post('/on-post-submit', async (c) => {
       200
     );
   }
+
+  const flairsCooldown = await settings.get<string>('flairsCooldown');
+  if (flairsCooldown) {
+    const linesFlairs = flairsCooldown.split("\n");
+    for (const line of linesFlairs) {
+      const [flair, cooldownOfFlair] = line.split(":").map(part => part.trim());
+      if (flair == postFlair) {
+        cooldown = parseFloat(cooldownOfFlair!);
+        break;
+      }
+    }
+  }
+
+  const removalMessage = await settings.get<string>('removalMessage') ?? `Your post in r/subredditName was removed. Please wait **timeLeft** before posting again.`;
+  const exemptApprovedUsers = await settings.get<boolean>('exemptApprovedUsers') ?? false;
+  let isMod = false;
+  let isApproved = false;
 
   try {
     isMod = (await reddit.getModerators({ subredditName, username }).all()).length > 0;
