@@ -32,6 +32,9 @@ triggers.post('/on-post-submit', async (c) => {
   const postId = input.post?.id.replace('t3_', '');
   const postFlair = input.post?.linkFlair?.text;
   let cooldown = await settings.get<number>('cooldownMinutes') ?? 60;
+  let lastPostTime = await redis.get(`lastpost:${userId}`);
+  const isMuted = await redis.get(`muted:${userId}`);
+  let isFlairInFlairsCooldown = false;
 
   if (!userId || !username || !subredditName || !postId) {
     return c.json<TriggerResponse>(
@@ -49,6 +52,8 @@ triggers.post('/on-post-submit', async (c) => {
       const [flair, cooldownOfFlair] = line.split(":").map(part => part.trim());
       if (flair == postFlair) {
         cooldown = parseFloat(cooldownOfFlair!);
+        lastPostTime = await redis.get(`lastpost:${postFlair}:${userId}`);
+        isFlairInFlairsCooldown = true;
         break;
       }
     }
@@ -90,9 +95,6 @@ triggers.post('/on-post-submit', async (c) => {
       );
     }
   }
-
-  const lastPostTime = await redis.get(`lastpost:${userId}`);
-  const isMuted = await redis.get(`muted:${userId}`);
 
   if (lastPostTime) {
     const minutesSinceLastPost = (Date.now() - parseInt(lastPostTime)) / (1000 * 60);
@@ -212,8 +214,13 @@ triggers.post('/on-post-submit', async (c) => {
     }
   }
 
-  await redis.set(`lastpost:${userId}`, Date.now().toString());
-  await redis.expire(`lastpost:${userId}`, cooldown * 60);
+  if (isFlairInFlairsCooldown) {
+    await redis.set(`lastpost:${postFlair}:${userId}`, Date.now().toString());
+    await redis.expire(`lastpost:${postFlair}:${userId}`, cooldown * 60);
+  } else {
+    await redis.set(`lastpost:${userId}`, Date.now().toString());
+    await redis.expire(`lastpost:${userId}`, cooldown * 60);
+  }
   await redis.del(`muted:${userId}`);
 
   return c.json<TriggerResponse>(
