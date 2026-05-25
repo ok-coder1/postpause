@@ -127,7 +127,7 @@ forms.post('/mute-user-submit', async (c) => {
             200
         );
     }
-    
+
     const muteUntil = Date.now() + (normalized.muteHours * 60 * 60 * 1000);
     await redis.set(`muted:${userId}`, 'true');
     await redis.expire(`muted:${userId}`, normalized.muteHours * 60 * 60);
