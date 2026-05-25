@@ -10,6 +10,7 @@ const buildResetCooldownUnmuteFields = (username: string): FormField[] => [
         name: 'username',
         label: 'Username of the user to reset cooldown for',
         type: 'string',
+        required: true,
         defaultValue: username,
     }
 ]
@@ -56,7 +57,7 @@ const buildMuteFields = (username: string): FormField[] => [
         name: 'username',
         label: 'Username of the user to mute',
         type: 'string',
-        disabled: true,
+        required: true,
         defaultValue: username,
     },
     {

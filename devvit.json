@@ -54,7 +54,7 @@
       },
       "exemptApprovedUsers": {
         "type": "boolean",
-        "label": "Exempt approved users from cooldown",
+        "label": "Exempt Approved Users from cooldown",
         "defaultValue": false
       },
       "flairsCooldown": {

@@ -40,13 +40,6 @@ settings.post('/validate-removal-message', async (c) => {
                 error: 'Removal message must include the placeholder "timeLeft".',
             }
         );
-    } else if (!value.includes('subredditName')) {
-        return c.json<SettingsValidationResponse>(
-            {
-                success: false,
-                error: 'Removal message must include the placeholder "r/subredditName".',
-            }
-        );
     }
 
     return c.json<SettingsValidationResponse>(
