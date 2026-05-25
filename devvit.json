@@ -8,24 +8,24 @@
   "menu": {
     "items": [
       {
-        "label": "Temporarily mute user",
-        "description": "Temporarily stop/mute the user from posting for a set amount of time.",
+        "label": "Temporarily timeout user",
+        "description": "Temporarily stop/timeout the user from posting for a set amount of time.",
         "forUserType": "moderator",
         "location": ["comment", "post"],
-        "endpoint": "/internal/menus/mute-user"
+        "endpoint": "/internal/menus/timeout-user"
       },
       {
-        "label": "Reset cooldown/unmute user",
-        "description": "Reset the cooldown for a user or unmute them if they are currently muted.",
+        "label": "Reset cooldown/untimeout user",
+        "description": "Reset the cooldown for a user or untime out them if they are currently timed out.",
         "forUserType": "moderator",
         "location": ["comment", "post"],
-        "endpoint": "/internal/menus/reset-cooldown-unmute"
+        "endpoint": "/internal/menus/reset-cooldown-untimeout"
       }
     ]
   },
   "forms": {
-    "muteUser": "/internal/forms/mute-user-submit",
-    "resetCooldownUnmute": "/internal/forms/reset-cooldown-unmute-submit"
+    "timeoutUser": "/internal/forms/timeout-user-submit",
+    "resetCooldownUntimeout": "/internal/forms/reset-cooldown-untimeout-submit"
   },
   "triggers": {
     "onAppInstall": "/internal/triggers/on-app-install",

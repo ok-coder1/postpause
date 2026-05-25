@@ -4,24 +4,24 @@ import { redis } from '@devvit/redis';
 import { context, settings } from '@devvit/web/server';
 import type { UiResponse } from '@devvit/web/shared';
 
-type ResetCooldownUnmuteFormValues = {
+type ResetCooldownUntimeoutFormValues = {
     username: string;
 }
 
-type MuteFormValues = {
+type TimeoutFormValues = {
     username: string;
-    muteHours: number;
+    timeoutHours: number;
 }
 
 export const forms = new Hono();
 
-const normalizeResetCooldownUnmuteValues = (values: ResetCooldownUnmuteFormValues) => ({
+const normalizeResetCooldownUntimeoutValues = (values: ResetCooldownUntimeoutFormValues) => ({
     username: String(values.username),
 });
 
-forms.post('/reset-cooldown-unmute-submit', async (c) => {
-    const values = await c.req.json<ResetCooldownUnmuteFormValues>();
-    const normalized = normalizeResetCooldownUnmuteValues(values);
+forms.post('/reset-cooldown-untimeout-submit', async (c) => {
+    const values = await c.req.json<ResetCooldownUntimeoutFormValues>();
+    const normalized = normalizeResetCooldownUntimeoutValues(values);
     const subredditName = context.subredditName;
     const username = normalized.username;
     const user = await reddit.getUserByUsername(username);
@@ -37,12 +37,12 @@ forms.post('/reset-cooldown-unmute-submit', async (c) => {
     }
 
     await redis.del(`lastpost:${subredditName}:${userId}`);
-    const isMuted = await redis.get(`muted:${subredditName}:${userId}`);
-    if (isMuted == 'true') {
-        await redis.del(`muted:${subredditName}:${userId}`);
+    const isTimedOut = await redis.get(`timedout:${subredditName}:${userId}`);
+    if (isTimedOut == 'true') {
+        await redis.del(`timedout:${subredditName}:${userId}`);
         return c.json<UiResponse>(
             {
-                showToast: `u/${username} has been unmuted. They can now post immediately.`,
+                showToast: `u/${username} has been untimedout. They can now post immediately.`,
             },
             200
         );
@@ -56,19 +56,19 @@ forms.post('/reset-cooldown-unmute-submit', async (c) => {
     }
 });
 
-const normalizeMuteValues = (values: MuteFormValues) => ({
+const normalizeTimeoutValues = (values: TimeoutFormValues) => ({
     username: String(values.username),
-    muteHours: values.muteHours,
+    timeoutHours: values.timeoutHours,
 });
 
-forms.post('/mute-user-submit', async (c) => {
-    const values = await c.req.json<MuteFormValues>();
-    const normalized = normalizeMuteValues(values);
+forms.post('/timeout-user-submit', async (c) => {
+    const values = await c.req.json<TimeoutFormValues>();
+    const normalized = normalizeTimeoutValues(values);
     const subredditName = context.subredditName;
     const username = normalized.username;
     const user = await reddit.getUserByUsername(username);
     const userId = user?.id;
-    const muteHours = normalized.muteHours;
+    const timeoutHours = normalized.timeoutHours;
     const post = await reddit.getPostById(context.postId!);
     const postFlair = post.flair?.text;
     const flairsCooldown = await settings.get<string>('flairsCooldown');
@@ -89,7 +89,7 @@ forms.post('/mute-user-submit', async (c) => {
     if (context.username == username) {
         return c.json<UiResponse>(
             {
-                showToast: 'You cannot mute yourself.',
+                showToast: 'You cannot timeout yourself.',
             },
             200
         );
@@ -113,35 +113,35 @@ forms.post('/mute-user-submit', async (c) => {
     if (isMod) {
         return c.json<UiResponse>(
             {
-                showToast: 'You cannot mute a moderator.',
+                showToast: 'You cannot timeout a moderator.',
             },
             200
         );
     }
 
-    if (!normalized.muteHours || normalized.muteHours <= 0) {
+    if (!normalized.timeoutHours || normalized.timeoutHours <= 0) {
         return c.json<UiResponse>(
             {
-                showToast: 'You must specify the duration to mute the user for.',
+                showToast: 'You must specify the duration to timeout the user for.',
             },
             200
         );
     }
 
-    const muteUntil = Date.now() + (normalized.muteHours * 60 * 60 * 1000);
-    await redis.set(`muted:${userId}`, 'true');
-    await redis.expire(`muted:${userId}`, normalized.muteHours * 60 * 60);
+    const muteUntil = Date.now() + (normalized.timeoutHours * 60 * 60 * 1000);
+    await redis.set(`timedout:${userId}`, 'true');
+    await redis.expire(`timedout:${userId}`, normalized.timeoutHours * 60 * 60);
     if (isFlairInFlairsCooldown) {
         await redis.set(`lastpost:${postFlair}:${userId}`, muteUntil.toString());
-        await redis.expire(`lastpost:${postFlair}:${userId}`, normalized.muteHours * 60 * 60);
+        await redis.expire(`lastpost:${postFlair}:${userId}`, normalized.timeoutHours * 60 * 60);
     } else {
         await redis.set(`lastpost:${userId}`, muteUntil.toString());
-        await redis.expire(`lastpost:${userId}`, normalized.muteHours * 60 * 60);
+        await redis.expire(`lastpost:${userId}`, normalized.timeoutHours * 60 * 60);
     }
 
     return c.json<UiResponse>(
         {
-            showToast: `u/${username} has been muted for ${muteHours} hours.`
+            showToast: `u/${username} has been timed out for ${timeoutHours} hours.`
         },
         200
     );

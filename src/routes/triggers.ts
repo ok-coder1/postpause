@@ -33,9 +33,14 @@ triggers.post('/on-post-submit', async (c) => {
   const postFlair = input.post?.linkFlair?.text;
   let cooldown = await settings.get<number>('cooldownMinutes') ?? 15;
   let lastPostTime = await redis.get(`lastpost:${userId}`);
-  const isMuted = await redis.get(`muted:${userId}`);
+  const isTimedOut = await redis.get(`timedout:${userId}`);
   let isFlairInFlairsCooldown = false;
-
+  const removalMessage = await settings.get<string>('removalMessage') ?? `Your post in r/subredditName was removed. Please wait **timeLeft** before posting again.`;
+  const exemptApprovedUsers = await settings.get<boolean>('exemptApprovedUsers') ?? false;
+  let isMod = false;
+  let isApproved = false;
+  const flairsCooldown = await settings.get<string>('flairsCooldown');
+  
   if (!userId || !username || !subredditName || !postId) {
     return c.json<TriggerResponse>(
       {
@@ -45,7 +50,39 @@ triggers.post('/on-post-submit', async (c) => {
     );
   }
 
-  const flairsCooldown = await settings.get<string>('flairsCooldown');
+  
+  try {
+    isMod = (await reddit.getModerators({ subredditName, username }).all()).length > 0;
+  } catch (error) {
+    console.error('Error checking if user is a moderator:', error);
+  }
+
+  try {
+    isApproved = (await reddit.getApprovedUsers({subredditName, username}).all()).length > 0;
+  } catch (error) {
+    console.error('Error checking if user is approved:', error);
+  }
+  
+  if (isMod) {
+    return c.json<TriggerResponse>(
+      {
+        status: 'success',
+      },
+      200
+    );
+  }
+  
+  if (exemptApprovedUsers) {
+    if (isApproved) {
+      return c.json<TriggerResponse>(
+        {
+          status: 'success',
+        },
+        200
+      );
+    }
+  }
+
   if (flairsCooldown) {
     const linesFlairs = flairsCooldown.split("\n");
     for (const line of linesFlairs) {
@@ -58,44 +95,7 @@ triggers.post('/on-post-submit', async (c) => {
       }
     }
   }
-
-  const removalMessage = await settings.get<string>('removalMessage') ?? `Your post in r/subredditName was removed. Please wait **timeLeft** before posting again.`;
-  const exemptApprovedUsers = await settings.get<boolean>('exemptApprovedUsers') ?? false;
-  let isMod = false;
-  let isApproved = false;
-
-  try {
-    isMod = (await reddit.getModerators({ subredditName, username }).all()).length > 0;
-  } catch (error) {
-    console.error('Error checking if user is a moderator:', error);
-  }
-
-  try {
-    isApproved = (await reddit.getApprovedUsers({subredditName, username}).all()).length > 0;
-  } catch (error) {
-    console.error('Error checking if user is approved:', error);
-  }
-
-  if (isMod) {
-    return c.json<TriggerResponse>(
-      {
-        status: 'success',
-      },
-      200
-    );
-  }
-
-  if (exemptApprovedUsers) {
-    if (isApproved) {
-      return c.json<TriggerResponse>(
-        {
-          status: 'success',
-        },
-        200
-      );
-    }
-  }
-
+  
   if (lastPostTime) {
     const minutesSinceLastPost = (Date.now() - parseInt(lastPostTime)) / (1000 * 60);
     let minutesLeft = '0';
@@ -105,7 +105,7 @@ triggers.post('/on-post-submit', async (c) => {
     let ifMoreThanADay = false;
 
     if (minutesSinceLastPost < cooldown) {
-      if (isMuted == 'true') {
+      if (isTimedOut == 'true') {
         minutesLeft = ((parseInt(lastPostTime) - Date.now()) / (1000 * 60)).toFixed(1);
         if (parseFloat(minutesLeft) >= 60) {
           hoursLeft = ((parseInt(lastPostTime) - Date.now()) / (1000 * 60 * 60)).toFixed(1);
@@ -127,7 +127,7 @@ triggers.post('/on-post-submit', async (c) => {
         }
       }
       try {
-        if (isMuted != 'true') {
+        if (isTimedOut != 'true') {
           if (ifMoreThanAnHr) {
             if (ifMoreThanADay) {
               try {
@@ -179,20 +179,20 @@ triggers.post('/on-post-submit', async (c) => {
               await reddit.sendPrivateMessage({
                   to: username,
                   subject: 'PostPause',
-                  text: (parseFloat(daysLeft) != 1.0) ? removalMessage.replace('subredditName', subredditName).replace('timeLeft', `${daysLeft} days`) : removalMessage.replace('subredditName', subredditName).replace('timeLeft', `1 day`),
+                  text: `Your post in **r/${subredditName}** was removed. You are currently timed out and cannot post for **${daysLeft} days**.`,
                 });
             } else {
               await reddit.sendPrivateMessage({
                 to: username,
                 subject: 'PostPause',
-                text: (parseFloat(hoursLeft) != 1.0) ? removalMessage.replace('subredditName', subredditName).replace('timeLeft', `${hoursLeft} hours`) : removalMessage.replace('subredditName', subredditName).replace('timeLeft', `1 hour`),
+                text: `Your post in **r/${subredditName}** was removed. You are currently timed out and cannot post for **${hoursLeft} hours**.`,
               });
             }
           } else {
             await reddit.sendPrivateMessage({
               to: username,
               subject: 'PostPause',
-              text: (parseFloat(minutesLeft) != 1.0) ? removalMessage.replace('subredditName', subredditName).replace('timeLeft', `${minutesLeft} minutes`) : removalMessage.replace('subredditName', subredditName).replace('timeLeft', `1 minute`),
+              text: `Your post in **r/${subredditName}** was removed. You are currently timed out and cannot post for **${minutesLeft} minutes**.`,
             });
           }
         }
@@ -221,7 +221,7 @@ triggers.post('/on-post-submit', async (c) => {
     await redis.set(`lastpost:${userId}`, Date.now().toString());
     await redis.expire(`lastpost:${userId}`, cooldown * 60);
   }
-  await redis.del(`muted:${userId}`);
+  await redis.del(`timedout:${userId}`);
 
   return c.json<TriggerResponse>(
     {

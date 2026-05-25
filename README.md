@@ -37,17 +37,17 @@ Must be in the format `flair: cooldown` with `flair` being the text of the flair
 
 <img width="418" height="600" alt="Screen Shot 2026-05-25 at 8 51 25 PM" src="https://github.com/user-attachments/assets/c01d999c-7497-4208-98b8-51735483e4af" />
 
-### Temporarily mute user
+### Temporarily timeout user
 
-Lets you mute users for a period of time, rendering them unable to post for that period of time. This does NOT kick them out of the subreddit.
+Lets you timeout users for a period of time, rendering them unable to post for that period of time. This does NOT kick them out of the subreddit.
 
 #### Options:
-Username of the user to mute: Automatically filled in
-Number of hours to mute the user for: Set the time you want to mute the user for (in hours)
+Username of the user to timeout: Automatically filled in
+Number of hours to timeout the user for: Set the time you want to timeout the user for (in hours)
 
 ### Reset cooldown/unmute user
 
-If muted, unmutes the user, allowing them to post immediately. Else, resets the cooldown for the user, also allowing them to post immediately.
+If muted, untimeout the user, allowing them to post immediately. Else, resets the cooldown for the user, also allowing them to post immediately.
 
 #### Options:
-Username of the user to reset cooldown/unmute: Automatically filled in
+Username of the user to reset cooldown/untimeout: Automatically filled in

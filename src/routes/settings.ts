@@ -6,7 +6,16 @@ export const settings = new Hono();
 settings.post('/validate-cooldown', async (c) => {
     const { value } = await c.req.json<SettingsValidationRequest<number>>();
 
-    if (!value || value < 0) {
+    if (!value) {
+        return c.json<SettingsValidationResponse>(
+            {
+                success: false,
+                error: 'Cooldown is required.',
+            },
+        );
+    }
+
+    if (value < 0) {
         return c.json<SettingsValidationResponse>(
             {
                 success: false,
