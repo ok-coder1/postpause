@@ -5,7 +5,14 @@ import type { FormField } from '@devvit/shared-types/shared/form.js';
 
 export const menus = new Hono();
 
-const buildResetCooldownUntimeoutFields = (username: string): FormField[] => [
+const buildResetCooldownUntimeoutFields = (postId: string, username: string): FormField[] => [
+    {
+        name: 'postId',
+        label: 'Post ID',
+        type: 'string',
+        disabled: true,
+        defaultValue: postId,
+    },
     {
         name: 'username',
         label: 'Username of the user to reset cooldown for',
@@ -15,8 +22,8 @@ const buildResetCooldownUntimeoutFields = (username: string): FormField[] => [
     }
 ]
 
-const buildResetCooldownUntimeoutForm = (title: string, username: string) => ({
-    fields: buildResetCooldownUntimeoutFields(username),
+const buildResetCooldownUntimeoutForm = (title: string, postId: string, username: string) => ({
+    fields: buildResetCooldownUntimeoutFields(postId, username),
     title,
     acceptLabel: 'Reset',
     cancelLabel: 'Cancel',
@@ -29,14 +36,19 @@ menus.post('/reset-cooldown-untimeout', async (c) => {
         const targetId = request.targetId.replace('t3_', '');
         const post = await reddit.getPostById(`t3_${targetId}`);
         username = post.authorName;
-    } else if (request.location == "comment") {
+    }
+    // TODO(@ok-coder1): Support comments
+    /*
+    else if (request.location == "comment") {
         const targetId = request.targetId.replace('t1_', '');
         const comment = await reddit.getCommentById(`t1_${targetId}`);
         username = comment.authorName;
-    } else {
+    }
+    */
+    else {
         return c.json<UiResponse>(
             {
-                showToast: 'This menu item can only be used on posts or comments.',
+                showToast: 'This menu item can only be used on posts.',
             },
             200
         );
@@ -45,14 +57,21 @@ menus.post('/reset-cooldown-untimeout', async (c) => {
         {
             showForm: {
                 name: 'resetCooldownUntimeout',
-                form: buildResetCooldownUntimeoutForm('Reset cooldown/untimeout user', username),
+                form: buildResetCooldownUntimeoutForm('Reset cooldown/untimeout user', request.targetId, username),
             },
         },
         200
     );
 });
 
-const buildTimeoutFields = (username: string): FormField[] => [
+const buildTimeoutFields = (postId: string, username: string): FormField[] => [
+    {
+        name: 'postId',
+        label: 'Post ID',
+        type: 'string',
+        disabled: true,
+        defaultValue: postId,
+    },
     {
         name: 'username',
         label: 'Username of the user to timeout',
@@ -69,8 +88,8 @@ const buildTimeoutFields = (username: string): FormField[] => [
     },
 ];
 
-const buildTimeoutForm = (title: string, username: string) => ({
-    fields: buildTimeoutFields(username),
+const buildTimeoutForm = (title: string, postId: string, username: string) => ({
+    fields: buildTimeoutFields(postId, username),
     title,
     acceptLabel: 'Timeout',
     cancelLabel: 'Cancel',
@@ -83,14 +102,19 @@ menus.post('/timeout-user', async (c) => {
         const targetId = request.targetId.replace('t3_', '');
         const post = await reddit.getPostById(`t3_${targetId}`);
         username = post.authorName;
-    } else if (request.location == "comment") {
+    }
+    // TODO(@ok-coder1): Support comments
+    /*
+    else if (request.location == "comment") {
         const targetId = request.targetId.replace('t1_', '');
         const comment = await reddit.getCommentById(`t1_${targetId}`);
         username = comment.authorName;
-    } else {
+    }
+    */
+    else {
         return c.json<UiResponse>(
             {
-                showToast: 'This menu item can only be used on posts or comments.',
+                showToast: 'This menu item can only be used on posts.',
             },
             200
         );
@@ -99,7 +123,7 @@ menus.post('/timeout-user', async (c) => {
         {
             showForm: {
                 name: 'timeoutUser',
-                form: buildTimeoutForm('Temporarily timeout user', username),
+                form: buildTimeoutForm('Temporarily timeout user', request.targetId, username),
             },
         },
         200

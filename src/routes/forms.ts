@@ -5,10 +5,12 @@ import { context, settings } from '@devvit/web/server';
 import type { UiResponse } from '@devvit/web/shared';
 
 type ResetCooldownUntimeoutFormValues = {
+    postId: string;
     username: string;
 }
 
 type TimeoutFormValues = {
+    postId: string;
     username: string;
     timeoutHours: number;
 }
@@ -16,6 +18,7 @@ type TimeoutFormValues = {
 export const forms = new Hono();
 
 const normalizeResetCooldownUntimeoutValues = (values: ResetCooldownUntimeoutFormValues) => ({
+    postId: String(values.postId),
     username: String(values.username),
 });
 
@@ -26,7 +29,7 @@ forms.post('/reset-cooldown-untimeout-submit', async (c) => {
     const username = normalized.username;
     const user = await reddit.getUserByUsername(username);
     const userId = user?.id;
-    const post = await reddit.getPostById(context.postId!);
+    const post = await reddit.getPostById(`t3_${normalized.postId.replace('t3_', '')}`);
     const postFlair = post.flair?.text;
     const flairsCooldown = await settings.get<string>('flairsCooldown');
     let isFlairInFlairsCooldown = false;
@@ -75,6 +78,7 @@ forms.post('/reset-cooldown-untimeout-submit', async (c) => {
 });
 
 const normalizeTimeoutValues = (values: TimeoutFormValues) => ({
+    postId: String(values.postId),
     username: String(values.username),
     timeoutHours: values.timeoutHours,
 });
@@ -87,7 +91,7 @@ forms.post('/timeout-user-submit', async (c) => {
     const user = await reddit.getUserByUsername(username);
     const userId = user?.id;
     const timeoutHours = normalized.timeoutHours;
-    const post = await reddit.getPostById(context.postId!);
+    const post = await reddit.getPostById(`t3_${normalized.postId.replace('t3_', '')}`);
     const postFlair = post.flair?.text;
     const flairsCooldown = await settings.get<string>('flairsCooldown');
     let isFlairInFlairsCooldown = false;

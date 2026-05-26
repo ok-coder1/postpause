@@ -11,14 +11,14 @@
         "label": "Temporarily timeout user",
         "description": "Temporarily stop/timeout the user from posting for a set amount of time.",
         "forUserType": "moderator",
-        "location": ["comment", "post"],
+        "location": "post",
         "endpoint": "/internal/menus/timeout-user"
       },
       {
         "label": "Reset cooldown/untimeout user",
         "description": "Reset the cooldown for a user or untime out them if they are currently timed out.",
         "forUserType": "moderator",
-        "location": ["comment", "post"],
+        "location": "post",
         "endpoint": "/internal/menus/reset-cooldown-untimeout"
       }
     ]
