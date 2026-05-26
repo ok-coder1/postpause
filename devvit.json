@@ -48,7 +48,7 @@
       },
       "removalMessage": {
         "type": "string",
-        "label": "Removal message (use 'r/subredditName' and 'timeLeft' as placeholders)",
+        "label": "Removal message (use \"r/subredditName\" and \"timeLeft\" as placeholders)",
         "validationEndpoint": "/internal/settings/validate-removal-message",
         "defaultValue": "Your post in r/subredditName was removed. Please wait **timeLeft** before posting again."
       },

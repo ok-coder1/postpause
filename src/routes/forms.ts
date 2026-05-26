@@ -26,6 +26,21 @@ forms.post('/reset-cooldown-untimeout-submit', async (c) => {
     const username = normalized.username;
     const user = await reddit.getUserByUsername(username);
     const userId = user?.id;
+    const post = await reddit.getPostById(context.postId!);
+    const postFlair = post.flair?.text;
+    const flairsCooldown = await settings.get<string>('flairsCooldown');
+    let isFlairInFlairsCooldown = false;
+
+    if (flairsCooldown) {
+        const linesFlairs = flairsCooldown.split("\n");
+        for (const line of linesFlairs) {
+            const [flair, cooldownOfFlair] = line.split(":").map(part => part.trim());
+            if (flair == postFlair) {
+                isFlairInFlairsCooldown = true;
+                break;
+            }
+        }
+    }
 
     if (!username || !user || !userId) {
         return c.json<UiResponse>(
@@ -37,6 +52,9 @@ forms.post('/reset-cooldown-untimeout-submit', async (c) => {
     }
 
     await redis.del(`lastpost:${subredditName}:${userId}`);
+    if (isFlairInFlairsCooldown) {
+        await redis.del(`lastpost:${postFlair}:${userId}`);
+    }
     const isTimedOut = await redis.get(`timedout:${subredditName}:${userId}`);
     if (isTimedOut == 'true') {
         await redis.del(`timedout:${subredditName}:${userId}`);
