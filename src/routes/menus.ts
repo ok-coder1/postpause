@@ -11,6 +11,7 @@ const buildResetCooldownUntimeoutFields = (postId: string, username: string): Fo
         label: 'Post ID',
         type: 'string',
         disabled: true,
+        required: true,
         defaultValue: postId,
     },
     {
@@ -71,6 +72,7 @@ const buildTimeoutFields = (postId: string, username: string): FormField[] => [
         label: 'Post ID',
         type: 'string',
         disabled: true,
+        required: true,
         defaultValue: postId,
     },
     {

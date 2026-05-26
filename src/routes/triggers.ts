@@ -83,19 +83,30 @@ triggers.post('/on-post-submit', async (c) => {
     }
   }
 
+  if (isTimedOut == 'true') {
+    lastPostTime = await redis.get(`lastpost:${userId}`);
+  }
+
   if (flairsCooldown) {
     const linesFlairs = flairsCooldown.split("\n");
     for (const line of linesFlairs) {
       const [flair, cooldownOfFlair] = line.split(":").map(part => part.trim());
       if (flair == postFlair) {
-        cooldown = parseFloat(cooldownOfFlair!);
-        lastPostTime = await redis.get(`lastpost:${postFlair}:${userId}`);
-        isFlairInFlairsCooldown = true;
-        break;
+        if (isTimedOut == 'true') {
+          lastPostTime = await redis.get(`lastpost:${userId}`);
+          cooldown = (parseInt(lastPostTime!) - Date.now()) / (1000 * 60);
+          isFlairInFlairsCooldown = true;
+          break;
+        } else {
+          cooldown = parseFloat(cooldownOfFlair!);
+          lastPostTime = await redis.get(`lastpost:${postFlair}:${userId}`);
+          isFlairInFlairsCooldown = true;
+          break;
+        }
       }
     }
   }
-  
+
   if (lastPostTime) {
     const minutesSinceLastPost = (Date.now() - parseInt(lastPostTime)) / (1000 * 60);
     let minutesLeft = '0';

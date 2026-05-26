@@ -7,7 +7,8 @@ Go to Mod Tools → Installed Apps → PostPause → Installation Settings.
 
 Here, you can set the cooldown between each post of a user, the removal message that gets sent to the user, whether you want to exempt Approved Users from cooldown, and specific cooldowns for each post flair.
 
-<img width="1174" height="567" alt="Screen Shot 2026-05-25 at 8 51 37 PM" src="https://github.com/user-attachments/assets/eb479e92-4728-4fac-a9fd-62ad780c41e4" />
+<!-- <img width="1174" height="567" alt="Screen Shot 2026-05-25 at 8 51 37 PM" src="https://github.com/user-attachments/assets/eb479e92-4728-4fac-a9fd-62ad780c41e4" /> -->
+![Screenshot of Installation Settings](https://github.com/user-attachments/assets/eb479e92-4728-4fac-a9fd-62ad780c41e4)
 
 ### Cooldown duration
 Lets you set how much time a user should wait between making two posts (in minutes).
@@ -35,7 +36,8 @@ Must be in the format `flair: cooldown` with `flair` being the text of the flair
 
 ## Menu actions
 
-<img width="418" height="600" alt="Screen Shot 2026-05-25 at 8 51 25 PM" src="https://github.com/user-attachments/assets/c01d999c-7497-4208-98b8-51735483e4af" />
+<!-- <img width="418" height="600" alt="Screen Shot 2026-05-25 at 8 51 25 PM" src="https://github.com/user-attachments/assets/c01d999c-7497-4208-98b8-51735483e4af" /> -->
+![Screenshot of the menu actions added by PostPause](https://github.com/user-attachments/assets/c01d999c-7497-4208-98b8-51735483e4af)
 
 ### Temporarily timeout user
 

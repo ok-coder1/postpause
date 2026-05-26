@@ -59,7 +59,7 @@
       },
       "flairsCooldown": {
         "type": "paragraph",
-        "label": "Specific cooldowns for each flair (must be in the format \"flair: cooldown\" with a newline separating each of these)",
+        "label": "Specific cooldowns for each flair (case-sensitive and must be in the format \"flair: cooldown\" with a newline separating each of these)",
         "validationEndpoint": "/internal/settings/validate-flairs"
       }
     }

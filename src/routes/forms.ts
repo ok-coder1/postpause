@@ -154,6 +154,8 @@ forms.post('/timeout-user-submit', async (c) => {
     await redis.set(`timedout:${userId}`, 'true');
     await redis.expire(`timedout:${userId}`, normalized.timeoutHours * 60 * 60);
     if (isFlairInFlairsCooldown) {
+        await redis.set(`lastpost:${userId}`, muteUntil.toString());
+        await redis.expire(`lastpost:${userId}`, normalized.timeoutHours * 60 * 60);
         await redis.set(`lastpost:${postFlair}:${userId}`, muteUntil.toString());
         await redis.expire(`lastpost:${postFlair}:${userId}`, normalized.timeoutHours * 60 * 60);
     } else {
