@@ -38,6 +38,7 @@ menus.post('/reset-cooldown-untimeout', async (c) => {
         username = post.authorName;
     }
     // TODO(@ok-coder1): Support comments
+    // Issue URL: https://github.com/ok-coder1/postpause/issues/17
     /*
     else if (request.location == "comment") {
         const targetId = request.targetId.replace('t1_', '');
@@ -104,6 +105,7 @@ menus.post('/timeout-user', async (c) => {
         username = post.authorName;
     }
     // TODO(@ok-coder1): Support comments
+    // Issue URL: https://github.com/ok-coder1/postpause/issues/16
     /*
     else if (request.location == "comment") {
         const targetId = request.targetId.replace('t1_', '');
