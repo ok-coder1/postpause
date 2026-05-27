@@ -25,7 +25,6 @@ const normalizeResetCooldownUntimeoutValues = (values: ResetCooldownUntimeoutFor
 forms.post('/reset-cooldown-untimeout-submit', async (c) => {
     const values = await c.req.json<ResetCooldownUntimeoutFormValues>();
     const normalized = normalizeResetCooldownUntimeoutValues(values);
-    const subredditName = context.subredditName;
     const username = normalized.username;
     const user = await reddit.getUserByUsername(username);
     const userId = user?.id;
@@ -37,7 +36,7 @@ forms.post('/reset-cooldown-untimeout-submit', async (c) => {
     if (flairsCooldown) {
         const linesFlairs = flairsCooldown.split("\n");
         for (const line of linesFlairs) {
-            const [flair, cooldownOfFlair] = line.split(":").map(part => part.trim());
+            const [flair] = line.split(":").map(part => part.trim());
             if (flair == postFlair) {
                 isFlairInFlairsCooldown = true;
                 break;
@@ -100,7 +99,7 @@ forms.post('/timeout-user-submit', async (c) => {
     if (flairsCooldown) {
         const linesFlairs = flairsCooldown.split("\n");
         for (const line of linesFlairs) {
-            const [flair, cooldownOfFlair] = line.split(":").map(part => part.trim());
+            const [flair] = line.split(":").map(part => part.trim());
             if (flair == postFlair) {
                 isFlairInFlairsCooldown = true;
                 break;
