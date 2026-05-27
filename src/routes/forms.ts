@@ -54,13 +54,13 @@ forms.post('/reset-cooldown-untimeout-submit', async (c) => {
         );
     }
 
-    await redis.del(`lastpost:${subredditName}:${userId}`);
+    await redis.del(`lastpost:${userId}`);
     if (isFlairInFlairsCooldown) {
         await redis.del(`lastpost:${postFlair}:${userId}`);
     }
-    const isTimedOut = await redis.get(`timedout:${subredditName}:${userId}`);
+    const isTimedOut = await redis.get(`timedout:${userId}`);
     if (isTimedOut == 'true') {
-        await redis.del(`timedout:${subredditName}:${userId}`);
+        await redis.del(`timedout:${userId}`);
         return c.json<UiResponse>(
             {
                 showToast: `u/${username} has been untimedout. They can now post immediately.`,
