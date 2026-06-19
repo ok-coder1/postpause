@@ -21,8 +21,8 @@
     "@devvit/start": "0.13.0",
     "@devvit/web": "0.13.0",
     "@hono/node-server": "^1.19.9",
-    "devvit": "0.13.0",
-    "hono": "4.11.7"
+    "devvit": "1.0.0",
+    "hono": "4.12.26"
   },
   "devDependencies": {
     "@eslint/js": "9.39.2",
@@ -32,7 +32,7 @@
     "prettier": "3.8.1",
     "typescript": "5.8.3",
     "typescript-eslint": "8.59.3",
-    "vite": "7.3.1"
+    "vite": "8.0.16"
   },
   "overrides": {
     "esbuild": "npm:esbuild-wasm@0.25.9"
